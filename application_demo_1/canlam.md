@@ -8,7 +8,7 @@
 4. Điền cấu hình:
    - Root Directory: application_demo_1/backend
    - Runtime: Node
-   - Build Command: npm install
+   - Build Command: npm install --build-from-source
    - Start Command: node server.js
    - Branch: main
    - Instance Type: Free
