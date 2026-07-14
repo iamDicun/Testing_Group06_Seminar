@@ -5,7 +5,7 @@ const db = require("./database");
 const jwt = require("jsonwebtoken");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 const SECRET_KEY = "super_secret_key_that_should_not_be_here";
 
 app.use(cors());
@@ -567,10 +567,6 @@ app.put("/api/admin/orders/:id/status", authenticateToken, (req, res) => {
   );
 });
 
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-  });
-}
-
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});

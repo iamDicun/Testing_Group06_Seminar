@@ -1,0 +1,44 @@
+name: CI Demo 1 - Backend Tests
+
+on:
+  push:
+    branches: [main, demo_1]
+    paths:
+      - "application_demo_1/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "application_demo_1/**"
+
+jobs:
+  test:
+    name: Run Jest tests (backend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: application_demo_1/backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: application_demo_1/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Jest tests
+        run: npm test
+
+  deploy:
+    name: Trigger Render deploy
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Render Deploy Hook
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
