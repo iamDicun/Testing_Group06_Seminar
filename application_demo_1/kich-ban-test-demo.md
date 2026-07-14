@@ -30,21 +30,21 @@
 
 ---
 
-## Kịch bản 2 (mức dễ): Kiểu dữ liệu `price` bị sai khi `id` sản phẩm là số chẵn
+## Kịch bản 2 (FR-08 — Thanh toán/Checkout): Backend phải tự tính lại tổng tiền
 
 21. Tạo nhánh mới từ `main`
-22. Xác định bug: `GET /api/products/:id` trả về `price` dạng string khi `id` chẵn, thay vì number
-23. Viết Jest + Supertest test: gọi `GET /api/products/2` → kỳ vọng `typeof response.body.price === "number"`
+22. Xác định bug: `POST /api/checkout` lưu thẳng `total_amount` do client gửi lên, không tính lại từ giỏ hàng (vi phạm đặc tả FR-08 trong `README.md`)
+23. Viết Jest + Supertest test: đăng ký → login → thêm sản phẩm giá 30.000.000đ vào giỏ hàng → checkout với `total_amount` cố tình sai (1đ) → lấy lại đơn hàng → kỳ vọng `total_amount` lưu trong DB phải bằng 30.000.000 (tính lại từ giỏ hàng, không phải giá trị client gửi)
 24. Chạy test ở local, xác nhận test FAIL (bug tồn tại)
 25. Push nhánh lên GitHub, tạo Pull Request vào `main`
 26. Quan sát GitHub Actions tự động chạy, kiểm tra kết quả FAIL trên PR
 27. Xác nhận nút Merge bị khóa do check chưa pass
-28. Sửa code trong `server.js` (bỏ đoạn ép kiểu `row.price.toString()` khi `id` chẵn)
+28. Sửa code trong `server.js` (bỏ nhận `total_amount` từ client, tính lại từ `userCarts[userId]`: tổng = Σ price × quantity)
 29. Commit và push tiếp vào cùng nhánh
 30. Quan sát GitHub Actions chạy lại, kiểm tra kết quả PASS trên PR
 31. Xác nhận nút Merge được mở khóa, merge Pull Request vào `main`
 32. Quan sát Render nhận request deploy, build và triển khai bản mới
-33. Kiểm tra API trên môi trường Render: gọi `GET /api/products/2`, xác nhận `price` trả về đúng kiểu number
+33. Kiểm tra API trên môi trường Render: thêm sản phẩm vào giỏ, checkout với `total_amount` sai cố ý, xác nhận đơn hàng lưu đúng tổng tiền tính từ giỏ hàng
 34. Ghi nhận kết quả, chụp ảnh màn hình từng bước để đưa vào báo cáo/slide demo
 
 
@@ -57,15 +57,15 @@ Kịch bản quay demo — CI/CD & Test-Harness (backend EShop)
 Cảnh 1 — Giới thiệu bug (quay màn hình VS Code)
 
 - Mở server.js, chỉ vào 2 đoạn code có bug:
-  - PUT /api/orders/:id/cancel — chỉ chặn hủy khi delivered/canceled, quên chặn shipping
-  - GET /api/products/:id — ép price thành string khi id chẵn
-- Nói ngắn gọn: đây là 2 bug thật, mình sẽ viết test để bắt chúng.
+  - PUT /api/orders/:id/cancel — chỉ chặn hủy khi delivered/canceled, quên chặn shipping (FR-10)
+  - POST /api/checkout — lưu thẳng total_amount client gửi lên, không tính lại từ giỏ hàng (FR-08)
+- Nói ngắn gọn: đây là 2 bug thật, đối chiếu với đặc tả README.md, mình sẽ viết test để bắt chúng.
 
 Cảnh 2 — Chạy test local, thấy FAIL (quay Terminal)
 
 cd application_demo_1/backend
 npm test
-- Zoom vào phần Expected: 400 / Received: 200 và Expected: "number" / Received: "string" — chứng minh bug có thật, test viết đúng.
+- Zoom vào phần Expected: 400 / Received: 200 (order-cancel) và Expected: 30000000 / Received: 1 (checkout-total) — chứng minh bug có thật, test viết đúng.
 
 Cảnh 3 — Push code + tạo Pull Request (quay Terminal → GitHub)
 
@@ -106,8 +106,6 @@ Cảnh 10 — Render tự động deploy (quay Render Dashboard)
 
 Cảnh 11 — Verify API thật trên production (quay Postman/curl)
 
-curl https://<ten-service>.onrender.com/api/products/2
-- Cho thấy price giờ trả về đúng kiểu number tr
-
-curl https://<ten-service>.onrender.com/api/products/2
-- Cho thấy price giờ trả về đúng kiểu number trên môi trường thật (không phải chỉ local nữa) — đây là khoảnh khắc chốt: chứng minh cả vòng CI → CD đã hoạt động đúng, từ lúc bắt bug tới lúc code fix thực sự chạy trên production.
+- Login lấy token, thêm sản phẩm giá 30.000.000đ vào giỏ hàng, gọi checkout với `total_amount` cố tình sai (1đ) trên đúng URL Render.
+- Gọi tiếp `GET /api/orders/:id` để xem lại đơn hàng vừa tạo.
+- Cho thấy `total_amount` lưu trong đơn hàng là **30000000** (tính lại từ giỏ hàng), không phải giá trị `1` client gửi lên — đây là khoảnh khắc chốt: chứng minh cả vòng CI → CD đã hoạt động đúng, từ lúc bắt bug tới lúc code fix thực sự chạy trên production.

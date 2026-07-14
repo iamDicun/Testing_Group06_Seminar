@@ -295,7 +295,13 @@ app.post("/api/cart", authenticateToken, (req, res) => {
 
 app.post("/api/checkout", authenticateToken, (req, res) => {
   const userId = req.user.id;
-  const { total_amount, shipping_address } = req.body;
+  const { shipping_address } = req.body;
+
+  const cartItems = userCarts[userId] || [];
+  const total_amount = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
 
   db.run(
     "INSERT INTO orders (user_id, total_amount, status, shipping_address) VALUES (?, ?, ?, ?)",
