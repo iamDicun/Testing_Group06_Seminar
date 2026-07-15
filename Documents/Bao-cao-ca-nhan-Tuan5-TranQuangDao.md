@@ -30,7 +30,11 @@ CircleCI giải quyết bài toán tự động hóa hoàn toàn quy trình tíc
 * **Cơ chế kích hoạt:** Hoạt động theo mô hình **pull-based** ở góc độ CI. Hệ thống lắng nghe các sự kiện (Push, Pull Request) từ kho chứa mã nguồn (GitHub/Bitbucket) thông qua kết nối Webhook được cấu hình tự động.
 * **Ngôn ngữ cấu hình:** Toàn bộ kịch bản và luồng công việc được định nghĩa tập trung trong tập tin định dạng YAML (`.circleci/config.yml`).
 * **Môi trường thực thi (Executor):** Khi workflow được kích hoạt, CircleCI sẽ cấp phát các môi trường ảo độc lập dựa trên cấu hình (có thể là Docker container, máy ảo Linux Machine, Windows, hoặc macOS).
-* **Luồng dữ liệu di chuyển:** Lập trình viên Push code (Input) $ightarrow$ Webhook thông báo tới CircleCI $ightarrow$ Hệ thống điều phối cấp phát Executor $ightarrow$ Thực hiện kéo mã nguồn về và chạy chuỗi lệnh tự động (Xử lý nội bộ) $ightarrow$ Kết xuất báo cáo kiểm thử, lưu trữ Docker image hoặc file artifact (Output/Report).
+* **Luồng dữ liệu di chuyển:** Lập trình viên Push code (Input) $
+ightarrow$ Webhook thông báo tới CircleCI $
+ightarrow$ Hệ thống điều phối cấp phát Executor $
+ightarrow$ Thực hiện kéo mã nguồn về và chạy chuỗi lệnh tự động (Xử lý nội bộ) $
+ightarrow$ Kết xuất báo cáo kiểm thử, lưu trữ Docker image hoặc file artifact (Output/Report).
 
 ### 4. Điểm mạnh
 * **Tốc độ thực thi tối ưu:** Nhờ kiến trúc tối ưu hóa nâng cao cho lưu trữ cache và khả năng thực thi song song hiệu năng cao, CircleCI thường cho thời gian hoàn thành pipeline rất ngắn.
@@ -89,3 +93,5 @@ SonarQube đóng vai trò là chốt chặn kiểm soát chất lượng mã ngu
 
 ### 7. Hỗ trợ AI
 SonarQube đã tích hợp các tính năng AI-Assisted mã nguồn nâng cao. Khi phát hiện lỗi hoặc lỗ hổng bảo mật phức tạp, hệ thống sử dụng các mô hình ngôn ngữ lớn (LLMs) để đưa ra lời giải thích chi tiết về nguyên nhân gây lỗi, đồng thời tự động đề xuất đoạn mã sửa lỗi tối ưu (Fix Suggestions) trực tiếp trên giao diện, giúp lập trình viên rút ngắn thời gian sửa mã nguồn (remediation time).
+
+Demo video: 
