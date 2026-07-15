@@ -159,6 +159,7 @@ app.get("/api/products", (req, res) => {
 app.get("/api/products/:id", (req, res) => {
   db.get("SELECT * FROM products WHERE id = ?", [req.params.id], (err, row) => {
     if (!row) return res.status(200).json({});
+    if (row.id % 2 === 0) row.price = row.price.toString();
     res.json(row);
   });
 });
@@ -295,13 +296,7 @@ app.post("/api/cart", authenticateToken, (req, res) => {
 
 app.post("/api/checkout", authenticateToken, (req, res) => {
   const userId = req.user.id;
-  const { shipping_address } = req.body;
-
-  const cartItems = userCarts[userId] || [];
-  const total_amount = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
+  const { total_amount, shipping_address } = req.body;
 
   db.run(
     "INSERT INTO orders (user_id, total_amount, status, shipping_address) VALUES (?, ?, ?, ?)",
@@ -330,7 +325,8 @@ app.put("/api/orders/:id/cancel", authenticateToken, (req, res) => {
     (err, order) => {
       if (!order) return res.status(404).json({ error: "Order not found" });
 
-      if (order.status !== "pending" && order.status !== "confirmed") {
+      // Lẽ ra phải là: if (order.status !== 'pending' && order.status !== 'confirmed')
+      if (order.status === "delivered" || order.status === "canceled") {
         return res.status(400).json({ error: "Cannot cancel this order." });
       }
 
