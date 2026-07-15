@@ -1,22 +1,12 @@
 const request = require("supertest");
-const app = require("../server");
+const app = require("../../server");
 
-// Kịch bản 2 (FR-08 — Thanh toán/Checkout):
-//
-// Đặc tả (README.md - System Requirements Specification):
-//   "Backend phải tự tính lại tổng tiền; không chấp nhận giá trị total_amount
-//    do client gửi lên."
-//
-// Bug hiện tại trong server.js (POST /api/checkout):
-//   const { total_amount, shipping_address } = req.body;
-//   ... lưu thẳng total_amount client gửi vào đơn hàng, không tính lại từ giỏ hàng.
-// Test này viết theo đúng đặc tả nên sẽ FAIL cho tới khi bug được sửa.
+// FR-08: Backend phải tự tính lại tổng tiền, không nhận total_amount từ client.
 
-describe("Thanh toán - Backend phải tự tính lại tổng tiền (Checkout)", () => {
+describe("Thanh toán (Checkout)", () => {
   let userToken;
 
   beforeAll(async () => {
-    // 1. Đăng ký + login user mới
     await request(app).post("/api/register").send({
       name: "Test Checkout User",
       email: "checkout-user@test.com",
@@ -29,7 +19,6 @@ describe("Thanh toán - Backend phải tự tính lại tổng tiền (Checkout)
     });
     userToken = loginRes.body.token;
 
-    // 2. Thêm 1 sản phẩm giá 30,000,000đ vào giỏ hàng
     await request(app)
       .post("/api/cart")
       .set("Authorization", `Bearer ${userToken}`)
@@ -42,7 +31,6 @@ describe("Thanh toán - Backend phải tự tính lại tổng tiền (Checkout)
   });
 
   test("Checkout phải bỏ qua total_amount client gửi lên, tự tính lại từ giỏ hàng", async () => {
-    // Cố tình gửi total_amount sai lệch (1 đồng) trong khi giỏ hàng thực tế là 30,000,000đ
     const checkoutRes = await request(app)
       .post("/api/checkout")
       .set("Authorization", `Bearer ${userToken}`)
@@ -52,5 +40,12 @@ describe("Thanh toán - Backend phải tự tính lại tổng tiền (Checkout)
     const orderRes = await request(app).get(`/api/orders/${orderId}`);
 
     expect(orderRes.body.total_amount).toBe(30000000);
+  });
+
+  test("Không đăng nhập thì không checkout được", async () => {
+    const res = await request(app)
+      .post("/api/checkout")
+      .send({ shipping_address: "123 Test Street" });
+    expect(res.status).toBe(401);
   });
 });
