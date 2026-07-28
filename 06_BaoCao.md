@@ -2,6 +2,21 @@
 
 **Nhóm 06 - Môn Kiểm thử phần mềm**
 
+## Thành viên nhóm
+
+| MSSV | Họ và tên |
+|---|---|
+| 23127031 | Nguyễn Ngọc Minh Châu |
+| 23127033 | Bùi Dương Duy Cường |
+| 23127391 | Nguyễn Anh Khoa |
+| 23127459 | Huỳnh Vương Thụy Quân |
+| 21127498 | Trần Quang Đạo |
+
+## Video demo
+
+- 🎥 **GitHub Actions:** https://youtu.be/hMHrNRQyqYo
+- 🎥 **GitLab CI/CD:** https://youtu.be/pn46VvWUwNQ
+
 ## Mục lục
 
 1. [Tổng quan về CI/CD](#1-tổng-quan-về-cicd)
@@ -626,34 +641,49 @@ CI/CD và Test-Harness Engineering **không thay thế vai trò người kiểm 
 
 ### 11.1 GitHub Actions
 
+> 🎥 **Video demo:** https://youtu.be/hMHrNRQyqYo
+
 #### Kịch bản test
 
-Áp dụng thực nghiệm trên backend EShop (`application_demo_1/backend`), với 2 kịch bản test tương ứng 2 chức năng đã đặc tả trong `README.md` (System Requirements Specification):
+Áp dụng thực nghiệm trên backend EShop (`application_demo_1/backend`), với 2 kịch bản test tương ứng 2 chức năng đã đặc tả trong `README.md` (System Requirements Specification). Test đã được mở rộng để bao phủ **toàn bộ các chức năng mà 2 luồng nghiệp vụ đi qua** (đăng ký, đăng nhập, giỏ hàng, checkout, admin cập nhật trạng thái, hủy đơn, xem chi tiết đơn) — chia rõ **Unit test** (hàm nghiệp vụ thuần, không đụng DB) và **Integration test** (gọi API thật qua Supertest + SQLite).
 
 **Chức năng 1 — Hủy đơn hàng theo trạng thái (FR-10: Order State Machine)**
-**Đặc tả đúng:** Khi đơn hàng đã ở trạng thái `shipping` (đang giao), User không được phép tự hủy đơn nữa — chỉ các trạng thái `pending`/`confirmed` mới được phép hủy.
+**Đặc tả đúng:** Khi đơn hàng đã ở trạng thái `shipping` (đang giao), User không được phép tự hủy đơn nữa — chỉ các trạng thái `pending`/`confirmed` mới được phép hủy. `delivered` và `canceled` là trạng thái kết thúc, không được chuyển tiếp sang bất kỳ trạng thái nào khác.
 
-**Bug phát hiện trong code:** `PUT /api/orders/:id/cancel` chỉ chặn hủy khi trạng thái là `delivered` hoặc `canceled`, quên mất trường hợp `shipping` — nghĩa là đơn đang giao vẫn hủy được, sai đặc tả.
+**2 bug phát hiện trong code:**
+- `PUT /api/orders/:id/cancel` chỉ chặn hủy khi trạng thái là `delivered` hoặc `canceled`, quên mất trường hợp `shipping`.
+- `PUT /api/admin/orders/:id/status` cho phép chuyển `canceled → delivered`, vi phạm nguyên tắc "trạng thái kết thúc không được chuyển tiếp".
 
-**Kịch bản test (Jest + Supertest):**
-1. Đăng ký + đăng nhập 1 user mới, lấy JWT token.
-2. Đăng nhập tài khoản admin có sẵn (`admin@eshop.com`), lấy token admin.
-3. User checkout tạo 1 đơn hàng mới (mặc định trạng thái `pending`).
-4. Admin cập nhật trạng thái đơn: `pending → confirmed → shipping`.
-5. User gọi hủy đơn khi đơn đang `shipping`.
-6. **Kỳ vọng:** API trả về mã lỗi `400`. **Thực tế trước khi fix:** trả về `200` (hủy thành công) — test FAIL, đúng bug.
+**Các endpoint xuất hiện trong luồng (test đầy đủ, không chỉ endpoint có bug):** `POST /api/register` → `POST /api/login` (user + admin) → `POST /api/checkout` → `PUT /api/admin/orders/:id/status` (nhiều lần, cả case hợp lệ lẫn không hợp lệ) → `PUT /api/orders/:id/cancel` (cả case pending hủy được lẫn shipping không hủy được).
+
+**Unit test** (`tests/unit/business-logic.test.js`): gọi trực tiếp 2 hàm thuần `canCancelOrder(status)` và `isValidOrderStatusTransition(from, to)` với đầy đủ tổ hợp trạng thái (`test.each`), không cần khởi động server hay DB.
+
+**Integration test** (`tests/integration/order-status.test.js`, `order-cancel.test.js`): dựng luồng thật qua Supertest — checkout tạo đơn, admin chuyển trạng thái, user gọi hủy — kiểm tra đúng mã HTTP trả về ở từng bước.
 
 **Chức năng 2 — Thanh toán, tự tính lại tổng tiền (FR-08: Checkout)**
 **Đặc tả đúng:** "Backend phải tự tính lại tổng tiền; không chấp nhận giá trị `total_amount` do client gửi lên."
 
 **Bug phát hiện trong code:** `POST /api/checkout` lấy thẳng `total_amount` từ `req.body` và lưu vào đơn hàng, không hề đối chiếu với giỏ hàng thực tế phía server.
 
-**Kịch bản test (Jest + Supertest):**
-1. Đăng ký + đăng nhập 1 user mới, lấy JWT token.
-2. Thêm 1 sản phẩm giá 30.000.000đ vào giỏ hàng (`POST /api/cart`).
-3. Gọi checkout nhưng cố tình gửi `total_amount: 1` (sai lệch hoàn toàn so với giỏ hàng thật).
-4. Lấy lại chi tiết đơn hàng vừa tạo (`GET /api/orders/:id`).
-5. **Kỳ vọng:** `total_amount` lưu trong DB phải là `30000000` (tính lại từ giỏ hàng). **Thực tế trước khi fix:** `total_amount` là `1` (y hệt giá trị giả client gửi) — test FAIL, đúng bug.
+**Các endpoint xuất hiện trong luồng:** `POST /api/register` → `POST /api/login` → `POST /api/cart` (thêm sản phẩm) → `GET /api/cart` (xác nhận giỏ hàng đúng) → `POST /api/checkout` (gửi `total_amount` giả) → `GET /api/orders/:id` (xác nhận DB lưu đúng tổng tiền thật).
+
+**Unit test** (`tests/unit/business-logic.test.js`): gọi trực tiếp hàm thuần `calculateCartTotal(cartItems)` với nhiều bộ dữ liệu giỏ hàng (nhiều sản phẩm, giỏ rỗng), không cần DB.
+
+**Integration test** (`tests/integration/cart.test.js`, `checkout.test.js`, `order-detail.test.js`): test toàn bộ luồng thật qua Supertest, bao gồm cả trường hợp chưa đăng nhập (401), giỏ hàng rỗng, đơn hàng không tồn tại (404).
+
+**Danh sách file test cuối cùng:**
+
+| File | Loại | Nội dung |
+|---|---|---|
+| `tests/unit/business-logic.test.js` | Unit | `calculateCartTotal`, `canCancelOrder`, `isValidOrderStatusTransition` |
+| `tests/integration/auth.test.js` | Integration | Đăng ký, đăng nhập đúng/sai |
+| `tests/integration/cart.test.js` | Integration | Giỏ hàng rỗng, thêm sản phẩm, chưa đăng nhập |
+| `tests/integration/checkout.test.js` | Integration | Tính lại tổng tiền, chưa đăng nhập |
+| `tests/integration/order-status.test.js` | Integration | Toàn bộ chuyển trạng thái hợp lệ/không hợp lệ |
+| `tests/integration/order-cancel.test.js` | Integration | Hủy khi pending (thành công), hủy khi shipping (bị chặn) |
+| `tests/integration/order-detail.test.js` | Integration | Xem đơn hàng đúng, đơn không tồn tại |
+
+**Kết quả sau khi sửa code:** 7 test suite / 37 test — toàn bộ PASS.
 
 #### Chức năng
 
@@ -724,6 +754,25 @@ Giải thích cơ chế từng phần:
 Kết hợp với **Branch Protection Rule** (cấu hình ở GitHub, không nằm trong file YAML) yêu cầu check `"Run Jest tests (backend)"` phải pass, GitHub sẽ tự khóa nút Merge trên PR cho tới khi job `test` trả về exit code 0.
 
 **Cơ chế Jest + Supertest bên trong job test:**
+
+**Bước 0 — Vì sao tách được Unit test và Integration test:**
+Ban đầu, logic nghiệp vụ (kiểm tra trạng thái đơn hàng, tính tiền giỏ hàng) nằm lẫn trực tiếp trong route handler của Express (đọc/ghi DB và xử lý logic cùng một chỗ) — khiến muốn test logic thì bắt buộc phải đi qua HTTP + DB thật, không thể tách riêng. Để unit test được, phần logic thuần (không phụ thuộc DB/HTTP) được tách ra file riêng `businessLogic.js`:
+
+```js
+function calculateCartTotal(cartItems) {
+  return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+```
+
+Route handler trong `server.js` giờ chỉ còn gọi lại hàm này:
+
+```js
+const cartItems = userCarts[userId] || [];
+const total_amount = calculateCartTotal(cartItems);
+```
+
+Nhờ vậy, **Unit test** gọi thẳng `calculateCartTotal([{price: 100000, quantity: 2}])` và `expect(...).toBe(200000)` — chạy trong vài mili-giây, không cần Supertest, không cần DB, không cần Express. Còn **Integration test** vẫn giữ nguyên việc gọi qua Supertest như bên dưới, để xác nhận toàn bộ chuỗi (HTTP → middleware xác thực → route → DB) hoạt động đúng với nhau, không chỉ riêng logic bên trong.
+
 **Bước 1 — Jest phát hiện và thực thi test:**
 Jest tự động quét các file khớp pattern `*.test.js` (mặc định), nạp từng file như 1 module Node.js riêng biệt (mỗi file test có 1 module registry/require-cache độc lập). Bên trong mỗi file, `describe()` nhóm các test lại, `test()`/`it()` định nghĩa từng ca kiểm thử cụ thể.
 
@@ -776,9 +825,11 @@ Developer push code
 
 ### 11.2 GitLab CI/CD
 
+> 🎥 **Video demo:** https://youtu.be/pn46VvWUwNQ
+
 #### Kịch bản test
 
-Thực nghiệm trên backend EShop (`application_demo_2/backend`), gồm 2 kịch bản kiểm thử tích hợp vào pipeline GitLab:
+Thực nghiệm trên backend EShop (`application_demo_2/backend`), gồm 3 kịch bản kiểm thử tích hợp vào pipeline GitLab:
 
 **Kịch bản 1 — Thực hiện kịch bản kiểm thử luồng hủy đơn hàng (Order Cancel)**: 
 Kịch bản kiểm thử được thiết kế nhằm phát hiện và ngăn chặn lỗi nghiệp vụ: cho phép khách hàng hủy đơn hàng khi đơn hàng đang ở trạng thái vận chuyển (shipping).
@@ -801,6 +852,15 @@ Kịch bản kiểm thử được thiết kế nhằm xác thực các quy đ�
 3. **Khắc phục lỗi định dạng & Lỗ hổng bảo mật**: Sửa đổi logic trong `server.js` (thêm regex xác thực SĐT và loại bỏ logic sửa trường `role`).
 4. **Xác thực lại và Gộp nhánh (Trạng thái Passed)**: Pipeline chạy lại thành công, nút Merge được mở khóa để tiến hành gộp vào nhánh chính.
 5. **Tự động Deploy**: Hệ thống tự động triển khai phiên bản đã sửa lỗi an toàn lên máy chủ Render thông qua Deploy Hook.
+
+**Kịch bản 3 — Thực hiện kịch bản kiểm thử chức năng Xác thực (Đăng ký/Đăng nhập)**:
+Kịch bản kiểm thử được thiết kế nhằm xác thực các tính năng đăng ký tài khoản, đăng nhập hệ thống, cơ chế khóa tài khoản (Account Lockout) khi nhập sai mật khẩu nhiều lần, và quy trình cấp lại mật khẩu (Forgot/Reset Password).
+
+**Các bước thực hiện kịch bản:**
+1. **Thiết lập kịch bản kiểm thử**: Xây dựng tệp unit test `auth.test.js` trong thư mục `backend` sử dụng Jest và Supertest. Khởi tạo Merge Request từ nhánh `bugfix/auth` sang nhánh `main`.
+2. **Kích hoạt Pipeline tự động (Trạng thái Passed)**: Pipeline CI/CD tự động kích hoạt để chạy toàn bộ các suite kiểm thử (`auth.test.js`, `profile.test.js`, `order.test.js`).
+3. **Xác thực và Gộp nhánh (Trạng thái Passed)**: Khi pipeline hoàn thành thành công (Passed), tiến hành gộp code từ nhánh `bugfix/auth` vào nhánh chính `main`.
+4. **Tự động Deploy**: Sau khi gộp vào `main`, pipeline kích hoạt job deploy tự động gọi Webhook để triển khai mã nguồn mới nhất lên máy chủ Render.
 
 #### Chức năng
 
@@ -878,6 +938,7 @@ test_backend:
     - if: $CI_COMMIT_BRANCH == 'main'
     - if: $CI_COMMIT_BRANCH == 'bugfix/order-cancel'
     - if: $CI_COMMIT_BRANCH == 'bugfix/profile'
+    - if: $CI_COMMIT_BRANCH == 'bugfix/auth'
 
 deploy_backend:
   stage: deploy
@@ -902,7 +963,7 @@ deploy_backend:
     *   Nếu danh sách dependencies không đổi, Runner sẽ khôi phục thư mục `node_modules/` từ cache của lần chạy trước thay vì tải lại, giúp giảm thời gian chạy pipeline.
 4.  **Cài đặt thư viện an toàn (`npm ci`)**: Sử dụng lệnh `npm ci` để cài đặt chính xác các phiên bản được khóa cứng trong `package-lock.json`, loại bỏ rủi ro tự động cập nhật thư viện lỗi ngoài ý muốn.
 5.  **Kích hoạt linh hoạt (`rules`)**: 
-    *   Job `test_backend` chạy khi phát hiện sự kiện Merge Request, push lên `main` hoặc các nhánh bugfix (`bugfix/order-cancel`, `bugfix/profile`).
+    *   Job `test_backend` chạy khi phát hiện sự kiện Merge Request, push lên `main` hoặc các nhánh bugfix (`bugfix/order-cancel`, `bugfix/profile`, `bugfix/auth`).
     *   Job `deploy_backend` chỉ chạy duy nhất khi gộp code vào `main`.
 
 ##### Các bước thực hiện cấu hình tệp tin `.gitlab-ci.yml`:
