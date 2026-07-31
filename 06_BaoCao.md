@@ -656,6 +656,100 @@ CI/CD và Test-Harness Engineering **không thay thế vai trò người kiểm 
 
 > 🎥 **Video demo:** https://youtu.be/hMHrNRQyqYo
 
+#### Cấu trúc thư mục Repo & Cấu trúc file GitHub Actions YAML
+
+Dưới đây là hướng dẫn chi tiết về cách tổ chức thư mục trong Repository (vị trí **Unit Test** & **GitHub Actions Workflow YAML**) và cấu trúc trực diện của một file **Workflow YAML** (`.github/workflows/main.yml`).
+
+##### 1. Cấu trúc thư mục Repository
+
+```text
+group-6-seminar/                 <-- Thư mục gốc của Repository (Root)
+│
+├── .github/                     <-- Thư mục chứa cấu hình GitHub Actions (BẮT BUỘC đặt tên này)
+│   └── workflows/               <-- Thư mục chứa các file quy trình tự động (Workflow)
+│       └── main.yml             <-- [File GitHub Actions YAML] Nằm trong .github/workflows/
+│
+├── backend/                     <-- Mã nguồn ứng dụng Backend
+│   ├── server.js
+│   ├── database.js
+│   ├── package.json             <-- Nơi khai báo script "npm test"
+│   └── tests/                   <-- Thư mục chứa các tệp kiểm thử
+│       ├── unit/                <-- [Vị trí UNIT TEST] Nằm trong backend/tests/unit/
+│       │   └── login_and_profile.test.js
+│       └── mocks/               <-- Dữ liệu/hàm giả lập cho Unit Test
+│
+├── frontend-web/                <-- Mã nguồn Frontend Web
+├── frontend-admin/              <-- Mã nguồn Frontend Admin
+└── frontend-mobile/             <-- Mã nguồn Frontend Mobile
+```
+
+##### 2. Cấu trúc trực diện file Workflow YAML (`.github/workflows/main.yml`)
+
+Dưới đây là cấu trúc khung của một file GitHub Actions YAML:
+
+```yaml
+# ==============================================================================
+# PHẦN 1: TÊN WORKFLOW & SỰ KIỆN KÍCH HOẠT (TRIGGER EVENTS)
+# Liệt kê tên quy trình và các sự kiện (push, pull request) để GitHub chạy tự động
+# ==============================================================================
+name: CI/CD Pipeline             # Tên hiển thị của Workflow trên giao diện GitHub Actions
+
+on:                              # Sự kiện kích hoạt Workflow
+  push:
+    branches:
+      - main                     # Chạy Workflow khi có code mới đẩy (push) lên nhánh 'main'
+
+# ==============================================================================
+# PHẦN 2: KHAI BÁO CÁC CÔNG VIỆC CỤ THỂ (JOBS)
+# Mặc định các Job trong GitHub Actions sẽ chạy SONG SONG (Parallel)
+# ngoại trừ khi dùng từ khóa 'needs' để thiết lập thứ tự chạy
+# ==============================================================================
+jobs:
+
+  # --- JOB 1: CHẠY UNIT TEST ---
+  unit_tests:                    # Tên ID đại diện cho Job 1
+    name: Run Backend Unit Tests # Tên hiển thị chi tiết trên giao diện GitHub
+    runs-on: ubuntu-latest       # Hệ điều hành máy ảo (Runner) cung cấp bởi GitHub
+
+    steps:                       # Danh sách các bước thực hiện tuần tự trong Job này
+      - name: Checkout Code      # Bước 1: Kéo (fetch) mã nguồn từ repo về máy ảo GitHub
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js      # Bước 2: Cài đặt môi trường Node.js phiên bản 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies # Bước 3: Di chuyển vào thư mục backend & cài đặt thư viện
+        run: |
+          cd backend
+          npm install
+
+      - name: Run Unit Tests     # Bước 4: Thực thi lệnh chạy Unit Test
+        run: |
+          cd backend
+          npm test
+
+  # --- JOB 2: TRIỂN KHAI (DEPLOY) ---
+  deploy_to_render:              # Tên ID đại diện cho Job 2
+    name: Deploy App to Render   # Tên hiển thị chi tiết
+    runs-on: ubuntu-latest       # Chạy trên máy ảo Ubuntu
+    needs: unit_tests            # BẮT BUỘC Job 'unit_tests' chạy xong thành công mới chạy Job này
+
+    steps:                       # Các bước thực thi deploy
+      - name: Trigger Render Deploy Hook # Lệnh gọi Webhook API đến Render để kích hoạt tự động deploy
+        run: |
+          curl -X POST "https://api.render.com/deploy/srv-d9j3ron7aucc73cq4rc0?key=..."
+```
+
+##### 3. Quy tắc cú pháp YAML cần nhớ
+
+1. **`key: value`**: Phải có **1 khoảng trắng** sau dấu `:`. (Ví dụ: `runs-on: ubuntu-latest`).
+2. **Thụt lề (Indentation)**: Dùng **2 khoảng trắng (Space)** để thể hiện cấp con. **Tuyệt đối KHÔNG dùng phím Tab**.
+3. **Danh sách (List)**: Mỗi mục trong danh sách bắt đầu bằng dấu gạch ngang `-` và 1 khoảng trắng (Ví dụ: `- name: Checkout Code`).
+4. **Ghi chú (Comment)**: Dùng dấu `#` để viết giải thích trên dòng.
+5. **Chạy đa dòng (`run: |`)**: Ký tự `|` cho phép viết nhiều dòng lệnh bash nối tiếp nhau dưới từ khóa `run`.
+
 #### Kịch bản test
 
 Áp dụng thực nghiệm trên backend EShop (`application_demo_1/backend`), với 2 kịch bản test tương ứng 2 chức năng đã đặc tả trong `README.md` (System Requirements Specification). Test đã được mở rộng để bao phủ **toàn bộ các chức năng mà 2 luồng nghiệp vụ đi qua** (đăng ký, đăng nhập, giỏ hàng, checkout, admin cập nhật trạng thái, hủy đơn, xem chi tiết đơn) — chia rõ **Unit test** (hàm nghiệp vụ thuần, không đụng DB) và **Integration test** (gọi API thật qua Supertest + SQLite).
@@ -839,6 +933,83 @@ Developer push code
 ### 11.2 GitLab CI/CD
 
 > 🎥 **Video demo:** https://youtu.be/pn46VvWUwNQ
+
+#### Cấu trúc thư mục Repo & Cấu trúc file CI YAML
+
+Dưới đây là hướng dẫn chi tiết về cách tổ chức thư mục trong Repository (vị trí **Unit Test** & **CI YAML**) và cấu trúc trực diện của một file **CI YAML** (`.gitlab-ci.yml`).
+
+##### 1. Cấu trúc thư mục Repository
+
+```text
+group-6-seminar/                 <-- Thư mục gốc của Repository (Root)
+│
+├── .gitlab-ci.yml               <-- [File CI YAML] Đặt ở ROOT để hệ thống tự động đọc cấu hình
+│
+├── backend/                     <-- Mã nguồn ứng dụng Backend
+│   ├── server.js
+│   ├── database.js
+│   ├── package.json             <-- Nơi khai báo script "npm test"
+│   └── tests/                   <-- Thư mục chứa các tệp kiểm thử
+│       ├── unit/                <-- [Vị trí UNIT TEST] Nằm trong backend/tests/unit/
+│       │   └── login_and_profile.test.js
+│       └── mocks/               <-- Dữ liệu/hàm giả lập cho Unit Test
+│
+├── frontend-web/                <-- Mã nguồn Frontend Web
+├── frontend-admin/              <-- Mã nguồn Frontend Admin
+└── frontend-mobile/             <-- Mã nguồn Frontend Mobile
+```
+
+##### 2. Cấu trúc trực diện file CI YAML (`.gitlab-ci.yml`)
+
+Dưới đây là cấu trúc khung của một file CI YAML kèm **giải thích trực tiếp trên từng dòng**:
+
+```yaml
+# ==============================================================================
+# PHẦN 1: KHAI BÁO CÁC GIAI ĐOẠN (STAGES)
+# Nơi liệt kê tất cả các bước trong quy trình CI/CD theo thứ tự chạy từ trên xuống
+# ==============================================================================
+stages:
+  - test                  # Giai đoạn 1: Chạy kiểm thử tự động (Unit Test...)
+  - deploy                # Giai đoạn 2: Triển khai ứng dụng lên Server (chạy sau khi test xong)
+
+# ==============================================================================
+# PHẦN 2: KHAI BÁO CÁC CÔNG VIỆC CỤ THỂ (JOBS)
+# Mỗi Job đại diện cho 1 công việc tự động riêng biệt
+# ==============================================================================
+
+# --- JOB 1: CHẠY UNIT TEST ---
+unit_tests:               # Tên Job (tên tự đặt đại diện cho công việc)
+  stage: test             # Khai báo Job này thuộc giai đoạn nào ở phần 'stages' trên
+  image: node:18          # Môi trường Docker container cung cấp sẵn Node.js v18
+
+  before_script:          # Các lệnh chuẩn bị (chạy TRƯỚC KHI vào lệnh chính)
+    - cd backend          # Chuyển vào thư mục backend chứa mã nguồn
+    - npm install         # Cài đặt các thư viện (dependencies) cần thiết
+
+  script:                 # Các lệnh thực thi chính (BẮT BUỘC CÓ)
+    - npm test            # Kích hoạt chạy tất cả các file Unit Test trong backend/tests/unit/
+
+  rules:                  # Điều kiện kích hoạt tự động chạy Job này
+    - if: '$CI_COMMIT_BRANCH == "main"'  # Chỉ chạy khi có code đẩy lên nhánh 'main'
+
+# --- JOB 2: TRIỂN KHAI (DEPLOY) ---
+deploy_to_render:         # Tên Job thứ hai (tự đặt)
+  stage: deploy           # Job này thuộc giai đoạn 'deploy'
+  image: curlimages/curl:latest # Sử dụng môi trường Docker có sẵn công cụ curl
+
+  script:                 # Lệnh chính để deploy
+    - curl -X POST "https://api.render.com/deploy/srv-d9j3ron7aucc73cq4rc0?key=..." # Gọi API để Render tự động deploy
+
+  rules:                  # Điều kiện kích hoạt
+    - if: '$CI_COMMIT_BRANCH == "main"'  # Chỉ deploy khi code đã vào nhánh 'main' thành công
+```
+
+##### 3. Quy tắc cú pháp YAML cần nhớ
+
+1. **`key: value`**: Phải có **1 khoảng trắng** sau dấu `:`. (Ví dụ: `stage: test`).
+2. **Thụt lề (Indentation)**: Dùng **2 khoảng trắng (Space)** để thể hiện cấp con. **Tuyệt đối KHÔNG dùng phím Tab**.
+3. **Danh sách (List)**: Mỗi mục trong danh sách bắt đầu bằng dấu gạch ngang `-` và 1 khoảng trắng (Ví dụ: `- cd backend`).
+4. **Ghi chú (Comment)**: Dùng dấu `#` để viết giải thích trên dòng.
 
 #### Kịch bản test
 
