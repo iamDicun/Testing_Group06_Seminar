@@ -169,6 +169,20 @@ Lập trình viên đẩy mã nguồn lên GitHub, sau đó GitHub Actions tự 
 
 **Nguyên tắc phát hiện lỗi sớm**: Các bước thực hiện nhanh và ít tốn tài nguyên như kiểm tra quy tắc mã nguồn và kiểm thử đơn vị nên được thực hiện trước. Nếu phát hiện lỗi, quy trình sẽ dừng ngay để tránh lãng phí thời gian và tài nguyên cho các bước tốn kém hơn như kiểm thử đầu cuối hoặc quét bảo mật chuyên sâu.
 
+### 2.3 Khi Pipeline không "xanh": Unhappy Case & Case Bất Ngờ
+
+Sơ đồ ở mục 2.1 mô tả luồng lý tưởng (Happy Case) khi mọi bước đều Pass. Trong thực tế, pipeline có thể rẽ nhánh tại bất kỳ điểm nào theo 3 nhóm sau:
+
+| Nhóm | Tình huống | Điểm rẽ nhánh trên Pipeline | Hành động xử lý chính |
+|---|---|---|---|
+| **Unhappy Case** (lỗi do code) | CI thất bại (Build/Lint/Unit Test/Integration/Security Scan) | Bất kỳ bước nào trong giai đoạn CI (bước 1-6) | Fail Fast: dừng pipeline ngay, chặn Merge, gửi cảnh báo (Slack/Email), Developer sửa code & push lại |
+| **Unhappy Case** (lỗi do code) | Lỗi phát hiện sau khi đã Merge vào nhánh chính | Sau bước Quality Gate, code đã vào `main` | Dùng `git revert` tạo commit mới đảo ngược, không dùng `git reset`, chạy lại pipeline |
+| **Unhappy Case** (lỗi do code) | Sự cố Production sau khi Deploy | Sau bước Deploy Production | Rollback khẩn cấp: re-deploy Artifact/Image cũ, hoặc chuyển traffic Blue/Green |
+| **Case Bất Ngờ** (lỗi hạ tầng/vận hành, không do code) | Pipeline bị gián đoạn (timeout, runner chết, hạ tầng bên thứ 3 sập, secrets hết hạn...) | Bất kỳ bước nào | Auto-Retry có giới hạn, escalate cho đội DevOps, re-run pipeline mà không cần sửa code |
+| **Happy Case mở rộng** | Deploy thành công nhưng chủ động Rollback (vì lý do kinh doanh/UX, không phải lỗi) | Sau bước Deploy Production, hệ thống vẫn ổn định | Re-deploy bản cũ theo kế hoạch, cần Manual Approval trước, không phải xử lý khẩn cấp |
+
+*(Chi tiết từng tình huống theo dạng luồng từng bước xem tại tài liệu "Xử lý các trường hợp Unhappy Case trong CI/CD" đính kèm.)*
+
 ---
 
 ## 3. Kỹ thuật xây dựng môi trường kiểm thử tự động (Test-Harness Engineering)
