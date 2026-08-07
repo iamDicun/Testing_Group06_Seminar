@@ -1,0 +1,28 @@
+CI - Continuous Integration: Là một bước trong quy trình Devops, giúp cho code khi được viết xong, được push lên nhánh chung liên tục. Ngoài ra, CI còn giúp tự động biên dịch và tự động Unit Testing. Mục đích là đẩy nhanh quá trình phát triển phần mềm, phát hiện sớm xung đột code có thể xảy ra và lỗi biên dịch nếu có.
+
+CD - Contiunous Delivery, Continuous Deployment: Là một bước trong quy trình, Devops, giúp tự động deploy lên môi trường thử nghiệm  (experimental environment) hoặc môi trường thực tế (running environment) tùy trường hợp. Deploy là quá trình đưa sản phẩm lên nền tảng, môi trường mà người dùng có thể tiếp cận và sử dụng. Nếu deploy lên môi trường thực tế triển khai thì phải vượt qua bài test tự động, bộ test phải được xây dựng với độ tin cậy cao.
+
+Test Harness: Tập hợp các công cụ, thư viện, dữ liệu kiểm thử và cấu hình được xây dựng để tự động hóa việc thực thi kiểm thử, thu thập kết quả và báo cáo một cách nhất quán.
+
+Bộ kiểm thử (Test Suite): Tập hợp các trường hợp kiểm thử (test case) để kiểm tra (test) một chức năng hoặc một phần xác định cụ thể của hệ thống
+
+Khung kiểm thử (Test Framework): Thư viện hoặc nền tảng hỗ trợ xây dựng và thực hiện các ca kiểm thử (test case), cung cấp các chức năng kiểm tra kết quả, mô phỏng bài test và chạy kiểm thử
+
+Hạ tầng kiểm thử (Test Harness): Toàn bộ môi trường phục vụ việc thực hiện kiểm thử, bao gồm khung kiểm thử, dữ liệu kiểm thử, thành phần mô phỏng, môi trường thực thi và công cụ ghi nhận kết quả.
+
+Thành phần mô phỏng kiểm thử: Là quá trình thực thi, chạy đối tượng cần kiểm thử (chức năng), với input xác định và kiểm tra tính đúng đắn của output.
+
+CI/CD pipeline: Quy trình tự động thực hiện các bước như build, kiểm thử và triển khai, được kích hoạt bởi các sự kiện từ  hệ thống quản lý mã nguồn.
+
+CI/CD cache: Cache là một nơi lưu trữ tạm thời được dùng để tăng tốc độ chạy của hệ thống CI/CD, bằng cách lưu lại những file ít bị thay đổi giữa các lần chạy
+
+Artifacts: Artifacts còn được gọi là sản phẩm đầu ra. Ví dụ, khi một công việc (job) trong pipeline hoàn thành việc đóng gói code, nó sẽ tạo ra các file thành phẩm (như file thực thi, file nén, hoặc báo cáo kiểm thử). Artifacts là một nơi lưu trữ tạm thời (có sự tương đồng với Cache), nhưng thay vì dùng để lưu lại những file ít bị thay đổi giữa các lần chạy như Cache, Artifacts dùng để lưu trữ kết quả của một quá trình build để truyền sang một bước khác (ví dụ như bước deploy, test,...) hoặc để người dùng, developer,... tải xuống
+
+
+Render Deploy Hook là một web hook triển khai trên Render, là một đường link (URL) duy nhất và bí mật mà nền tảng Render (Render là một cloud service, hosting server, nền tảng đám mây) cấp cho mỗi dịch vụ (ứng dụng, database,...). Bất cứ khi nào người dùng (con người hoặc hệ thống máy tính) gửi một yêu cầu HTTP Post request đến đường link (Deploy Hook) này, Render sẽ lập tức bắt đầu quá trình pull code mới nhất và tiến hành build/deploy ứng dụng. Tuy nhiên, không phải lúc nào người dùng cũng muốn deploy ngay lập tức lên Render, nên Deploy Hook ra đời cho phép người dùng kiểm soát thời điểm triển khai.
+
+Github Actions là một nền tảng tự động hóa quy trình Tích hợp và Triển khai liên tục (CI/CD) được tích hợp bên trong Github. Github Actions cho phép người dùng tự động hóa toàn bộ vòng đời phát triển phần mềm (build code, chạy test, deploy lên Server,..) trực tiếp từ kho lưu trữ mã nguồn (repo) của người dùng mà không cần phải sử dụng thêm dịch vụ của bên thứ ba. Output của Github Actions thường là một Docker Image (Docker Image có thể được hình dung một cách đơn giản là một hộp chứa code và môi trường thực thi).
+
+GitLab là một nền tảng quản lý mã nguồn và dự án, cạnh tranh với Github.
+
+GitLab CI/CD là một công cụ tự động hóa được tích hợp sẵn bên trong GitLab, cạnh tranh với Github Actions của Github. Đây là một công cụ các bạn có thể tham khảo sử dụng thử bên cạnh Github Actions.
