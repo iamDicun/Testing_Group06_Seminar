@@ -301,8 +301,10 @@ app.post("/api/cart", authenticateToken, (req, res) => {
 
 app.post("/api/checkout", authenticateToken, (req, res) => {
   const userId = req.user.id;
-  // BUG (FR-08): lấy thẳng total_amount từ client, không tính lại từ giỏ hàng
-  const { total_amount, shipping_address } = req.body;
+  const { shipping_address } = req.body;
+
+  const cartItems = userCarts[userId] || [];
+  const total_amount = calculateCartTotal(cartItems);
 
   db.run(
     "INSERT INTO orders (user_id, total_amount, status, shipping_address) VALUES (?, ?, ?, ?)",
