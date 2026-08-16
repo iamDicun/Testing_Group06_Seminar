@@ -14,8 +14,9 @@
 
 ## Video demo
 
-- 🎥 **GitHub Actions:** https://youtu.be/hMHrNRQyqYo
-- 🎥 **GitLab CI/CD:** https://youtu.be/pn46VvWUwNQ
+- **Lý thuyết:** https://www.youtube.com/watch?v=CZu15HdGdR8
+- **GitHub Actions:** https://youtu.be/IJcZKvlwQRY
+- **GitLab CI/CD:** https://youtu.be/kWcG1n8GtgY
 
 ## Mục lục
 
